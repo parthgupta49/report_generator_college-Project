@@ -44,7 +44,7 @@ const FormComponent = () => {
             console.log(key, value);
         }
         try {
-            const response = await fetch('http://localhost:3001/generate-pdf', {
+            const response = await fetch('https://report-generator-college-project.onrender.com/generate-pdf', {
                 method: 'POST',
                 body: formData
             });
