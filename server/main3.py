@@ -454,6 +454,16 @@ def generate_pdf(data, output_filename="output.pdf"):
     # --- Annexure Handling ---
     def add_annexure(y_position):
         nonlocal current_page
+        y_position -= 20
+        if y_position < margin_bottom + 220:
+            c.showPage()
+            current_page += 1
+            draw_header()
+            draw_footer()
+            y_position = page_height - margin_top - 100 - 18
+        c.setFont("Helvetica-Bold", 13)
+        c.drawString(50, y_position, "Annexure")
+        y_position -= 20
         annex_data = data.get('files', {}).get('annexure', {})
         sections = [
             ('speaker_profile', "1. Speaker Profile"),
@@ -471,7 +481,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                 continue
 
             # Check page space
-            if y_position < margin_bottom + 200:
+            if y_position < margin_bottom + 220:
                 c.showPage()
                 current_page += 1
                 draw_header()
@@ -479,9 +489,9 @@ def generate_pdf(data, output_filename="output.pdf"):
                 y_position = page_height - margin_top - 100 - 18
 
             # Add heading
-            c.setFont("Helvetica-Bold", 12)
+            c.setFont("Helvetica-Bold", 11)
             c.drawString(50, y_position, heading)
-            y_position -= 20
+            y_position -= 10
 
             # Draw images in grid
             x_pos = 50
