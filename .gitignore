@@ -22,6 +22,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-/server
+
 
 /src/components/main/FormComponent2.js
