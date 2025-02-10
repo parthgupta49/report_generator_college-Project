@@ -10,7 +10,7 @@ const FormComponent = () => {
     } = useForm();
 
     async function formSubmitHandler(data) {
-        console.log(data)
+        // console.log(data)
         const formData = new FormData();
 
         // Append JSON data
@@ -40,9 +40,9 @@ const FormComponent = () => {
         });
 
         // Log FormData contents
-        for (const [key, value] of formData.entries()) {
-            console.log(key, value);
-        }
+        // for (const [key, value] of formData.entries()) {
+        //     console.log(key, value);
+        // }
         try {
             const response = await fetch('https://report-generator-college-project.onrender.com/generate-pdf', {
             // const response = await fetch('http://localhost:3001/generate-pdf', {
