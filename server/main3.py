@@ -8,6 +8,7 @@ from reportlab.platypus import Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Image as PlatypusImage
 from PIL import Image
+from reportlab.lib.units import inch
 def generate_pdf(data, output_filename="output.pdf"):
     c = canvas.Canvas(output_filename, pagesize=letter)
     page_width, page_height = letter
@@ -91,7 +92,7 @@ def generate_pdf(data, output_filename="output.pdf"):
         table_height = table._height
 
         # Page break check
-        if (y_start - table_height) < margin_bottom + 200:
+        if (y_start - table_height) < margin_bottom + 100:
             c.showPage()
             nonlocal current_page
             current_page += 1
@@ -102,7 +103,8 @@ def generate_pdf(data, output_filename="output.pdf"):
         # Draw table
         table.drawOn(c, 50, y_start - table_height)
         return y_start - table_height - 20
-
+    
+    
     # --- HOD Section ---
     def add_hod_section(y_position):
         nonlocal current_page
@@ -483,7 +485,7 @@ def generate_pdf(data, output_filename="output.pdf"):
 
         for heading, rows in tables:
             y_pos = create_table(heading, rows, y_pos)
-            if y_pos < margin_bottom + 100:
+            if y_pos < margin_bottom + 200:
                 c.showPage()
                 current_page += 1
                 draw_header()
