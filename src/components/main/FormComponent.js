@@ -568,9 +568,9 @@ const FormComponent = () => {
                             if (section === 'Action Taken Report') {
 
                                 return (
-                                    <div>
+                                    <div key="action_taken_report">
                                         {/* Action Taken Report Section */}
-                                        <div key="action_taken_report" className="flex flex-col space-y-2">
+                                        <div  className="flex flex-col space-y-2">
                                             <label className="font-medium text-gray-700">Action Taken Report *</label>
                                             <div className="flex space-x-4">
                                                 <label>
