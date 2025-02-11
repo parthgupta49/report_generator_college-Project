@@ -20,8 +20,11 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
     // Organize files
     const files = {
         signatures: {
-            // organizer: req.files.find(f => f.fieldname.startsWith('organizer_signature'))?.path,
+            organizer: req.files.find(f => f.fieldname.startsWith('organizer_signature'))?.path,
             hod: req.files.find(f => f.fieldname.startsWith('hod_signature'))?.path
+        },
+        speaker_profile : {
+            speakerProfile : req.files.find(f => f.fieldname.startsWith('speaker_profile'))?.path
         },
         annexure: {}
     };
