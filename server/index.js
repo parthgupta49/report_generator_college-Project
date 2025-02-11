@@ -9,8 +9,8 @@ const app = express();
 const upload = multer({ dest: 'uploads/' });
 app.use(cors({
     origin : "https://college-report-generator.vercel.app",
-    // origin : "http://localhost:3000",
-    credentials : true
+    // origin: "http://localhost:3000",
+    credentials: true
 }));
 
 app.post('/generate-pdf', upload.any(), (req, res) => {
@@ -23,8 +23,8 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
             organizer: req.files.find(f => f.fieldname.startsWith('organizer_signature'))?.path,
             hod: req.files.find(f => f.fieldname.startsWith('hod_signature'))?.path
         },
-        speaker_profile : {
-            speakerProfile : req.files.find(f => f.fieldname.startsWith('speaker_profile'))?.path
+        speaker_profile: {
+            speakerProfile: req.files.find(f => f.fieldname.startsWith('speaker_profile'))?.path
         },
         annexure: {}
     };
@@ -85,8 +85,11 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
 
             // Send PDF
             const pdf = fs.readFileSync('output.pdf');
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
             res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename=report.pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename="report.pdf"');
             res.send(pdf);
 
         } catch (err) {
@@ -94,7 +97,7 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
             res.status(500).json({
                 message: '-------- Internal Server Error ------',
                 error: err.message,
-                success : false
+                success: false
             })
         } finally {
             // Cleanup all temporary files

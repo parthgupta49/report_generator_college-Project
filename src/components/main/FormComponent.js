@@ -61,7 +61,7 @@ const FormComponent = () => {
             }
         };
 
-        if (speakerProfileType === 'image' && data.annexure?.speaker_profile && !cleanedData.speakerProfile) {
+        if (speakerProfileType === 'image' && data.annexure?.speaker_profile) {
             const { speaker_profile } = data.annexure
             if (speaker_profile) {
                 appendFiles('speaker_profile', data.annexure.speaker_profile);
@@ -93,8 +93,8 @@ const FormComponent = () => {
             console.log(key, "\n", value, "\n");
         }
         try {
-            // const response = await fetch('https://report-generator-college-project.onrender.com/generate-pdf', {
-            const response = await fetch('http://localhost:3001/generate-pdf', {
+            const response = await fetch('https://report-generator-college-project.onrender.com/generate-pdf', {
+            // const response = await fetch('http://localhost:3001/generate-pdf', {
                 method: 'POST',
                 body: formData
             });
@@ -106,7 +106,7 @@ const FormComponent = () => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'report.pdf';
+                a.download = 'event_report.pdf';
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -527,13 +527,19 @@ const FormComponent = () => {
                                                 <input
                                                     type="file"
                                                     multiple
-                                                    {...register('annexure.speaker_profile')}
+                                                    // {...register('annexure.speaker_profile'), {
+                                                    //     onChange: (e) => handleFileChange('speaker_profile', e.target.files)
+                                                    // }}
+                                                    {...register(`annexure.speaker_profile`, {
+                                                        required: `${section} is required`,
+                                                        onChange: (e) => handleFileChange('speaker_profile', e.target.files)
+                                                    })}
                                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                                 />
                                                 <div className="text-center">
                                                     {uploadedFiles.speaker_profile ? (
                                                         <div className="space-y-1">
-                                                            <span className="text-[#4472c4] font-medium">Uploaded Files:</span>
+                                                            <span className="text-[#4472c4] font-medium">Uploaded Image:</span>
                                                             {uploadedFiles.speaker_profile.map((name, i) => (
                                                                 <p key={i} className="text-sm text-gray-700 truncate">
                                                                     {name}
@@ -542,8 +548,8 @@ const FormComponent = () => {
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            <span className="text-[#4472c4] font-medium">Click to upload files</span>
-                                                            <p className="text-sm text-gray-500">Multiple files allowed</p>
+                                                            <span className="text-[#4472c4] font-medium">Click to upload speaker's image (Only one)</span>
+                                                            <p className="text-sm text-gray-500">PNG, JPG up to 2MB</p>
                                                         </>
                                                     )}
                                                 </div>
@@ -615,7 +621,7 @@ const FormComponent = () => {
                                                     <div className="text-center">
                                                         {uploadedFiles.action_taken_report ? (
                                                             <div className="space-y-1">
-                                                                <span className="text-[#4472c4] font-medium">Uploaded Files:</span>
+                                                                <span className="text-[#4472c4] font-medium">Uploaded Images:</span>
                                                                 {uploadedFiles.action_taken_report.map((name, i) => (
                                                                     <p key={i} className="text-sm text-gray-700 truncate">
                                                                         {name}
@@ -624,8 +630,8 @@ const FormComponent = () => {
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <span className="text-[#4472c4] font-medium">Click to upload files</span>
-                                                                <p className="text-sm text-gray-500">Multiple files allowed</p>
+                                                                <span className="text-[#4472c4] font-medium">Click to upload images</span>
+                                                                <p className="text-sm text-gray-500">Multiple images allowed - PNG, JPG up to 2MB</p>
                                                             </>
                                                         )}
                                                     </div>
@@ -659,7 +665,7 @@ const FormComponent = () => {
                                         <div className="text-center">
                                             {uploadedFiles[fieldName] ? (
                                                 <div className="space-y-1">
-                                                    <span className="text-[#4472c4] font-medium">Uploaded Files:</span>
+                                                    <span className="text-[#4472c4] font-medium">Uploaded Images:</span>
                                                     {uploadedFiles[fieldName].map((name, i) => (
                                                         <p key={i} className="text-sm text-gray-700 truncate">
                                                             {name}
@@ -668,8 +674,8 @@ const FormComponent = () => {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <span className="text-[#4472c4] font-medium">Click to upload files</span>
-                                                    <p className="text-sm text-gray-500">Multiple files allowed</p>
+                                                    <span className="text-[#4472c4] font-medium">Click to upload Images</span>
+                                                    <p className="text-sm text-gray-500">Multiple images allowed - PNG, JPG up to 2MB</p>
                                                 </>
                                             )}
                                         </div>

@@ -280,8 +280,8 @@ def generate_pdf(data, output_filename="output.pdf"):
             y_position -= 10
 
             # Draw images in grid
-            x_pos = 50
-            max_width = 150
+            x_pos      = 50
+            max_width  = 150
             row_height = 0
             
             for img_path in images:
@@ -297,7 +297,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                         y_position -= row_height + 15
                         row_height = 0
 
-                    if y_position - scaled_h < margin_bottom:
+                    if y_position - scaled_h < margin_bottom + 50:
                         c.showPage()
                         current_page += 1
                         draw_header()
@@ -318,11 +318,17 @@ def generate_pdf(data, output_filename="output.pdf"):
             
         action_taken_report_text = data.get('actionTakenReport', {}).get('text', '')
         action_taken_report_images = annex_data.get('action_taken_report', [])
-
+        
         # Existing code for other sections...
 
         # Handle Action Taken Report
-        if action_taken_report_text :
+        if action_taken_report_text or action_taken_report_images:
+            if y_position < margin_bottom + 200:
+                c.showPage()
+                current_page += 1
+                draw_header()
+                draw_footer()
+                y_position = page_height - margin_top - 100 - 18
             c.setFont("Helvetica-Bold", 11)
             c.drawString(50, y_position, "7. Action Taken Report")
             y_position -= 20
@@ -332,7 +338,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                 c.setFont("Helvetica", 10)
                 text_lines = action_taken_report_text.split('\n')
                 for line in text_lines:
-                    if y_position < margin_bottom + 50:
+                    if y_position < margin_bottom + 200:
                         c.showPage()
                         current_page += 1
                         draw_header()
@@ -465,7 +471,7 @@ def generate_pdf(data, output_filename="output.pdf"):
         organizer_signature = data.get('files', {}).get('signatures', {}).get('organizer')
         if organizer_signature:
             try:
-                img = PlatypusImage(organizer_signature, width=100, height=50)
+                img = PlatypusImage(organizer_signature, width=120, height=120)
                 report_prepared_rows.append(("Signature:", img))
             except:
                 report_prepared_rows.append(("Signature:", "Signature Image Error"))
