@@ -8,7 +8,7 @@ const cors = require('cors')
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 app.use(cors({
-    origin : "https://college-report-generator.vercel.app/",
+    origin : "https://college-report-generator.vercel.app",
     // origin : "http://localhost:3000",
     credentials : true
 }));
