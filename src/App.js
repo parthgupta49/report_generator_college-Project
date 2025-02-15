@@ -2,15 +2,15 @@ import FormComponent from './components/main/FormComponent';
 function App() {
   return (
     <div className="w-screen h-screen overflow-x-hidden">
-      <div className='flex lg:flex-row flex-col  justify-center pt-2 gap-10 items-center'>
-        <img src='https://christuniversity.in/images/logo.jpg' alt='Christ-logo' className=' lg:w-[16rem]' />
+      <div className='flex lg:flex-row flex-col  justify-center pt-2 lg:gap-10 gap-5 items-center'>
+        <img src='https://christuniversity.in/images/logo.jpg' alt='Christ-logo' className='w-[13rem] lg:w-[16rem]' />
         <div className='border-1 self-stretch hidden lg:block'></div>
-        <div className='text-xl font-medium'> <p className='text-center lg:text-justify'>Department Of Computer Science</p><p className='text-center'>BYC</p></div>
+        <div className='text-lg lg:text-xl font-medium'> <p className='text-center lg:text-justify'>Department Of Computer Science</p><p className='text-center'>BYC</p></div>
       </div>
-      <div className='text-center text-lg mt-5'> Activity Report Generator</div>
-
+      <div className='text-center lg:text-lg mt-5'> Activity Report Generator</div>
+    <div className='border border-[#0B3F64] mt-2'></div>
       <FormComponent />
-      <div className='py-8 bg-[#002147] text-white font-medium'>
+      <div className='py-8 bg-[#002147] text-white font-medium border-t-5 border-[#ffbf00]'>
         <div className='flex justify-center lg:flex-row flex-col gap-[1rem] lg:gap-[4rem] items-center lg:items-stretch'>
           <div className='flex flex-col'>
             {/* <img src='https://christuniversity.in/uploads/campus/medium/1453155785_2023-08-17_12-25-20.jpg' className='max-w-[16rem] ' /> */}

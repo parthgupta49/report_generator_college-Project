@@ -131,8 +131,8 @@ const FormComponent = () => {
         <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
             <form onSubmit={handleSubmit(formSubmitHandler)} className="max-w-6xl mx-auto space-y-6">
                 {/* Header Section */}
-                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <legend className="text-xl font-bold text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
+                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <legend className="text-xl font-bold text-center lg:text-justify text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
                         Header Information
                     </legend>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -163,8 +163,8 @@ const FormComponent = () => {
                 </fieldset>
 
                 {/* General Information Section */}
-                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <legend className="text-xl font-bold text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
+                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <legend className="text-xl font-bold text-center lg:text-justify text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
                         General Information
                     </legend>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -198,8 +198,8 @@ const FormComponent = () => {
                 </fieldset>
 
                 {/* Speaker Details Section */}
-                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <legend className="text-xl font-bold text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
+                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <legend className="text-xl font-bold text-center lg:text-justify text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
                         Speaker Details
                     </legend>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -227,8 +227,8 @@ const FormComponent = () => {
                 </fieldset>
 
                 {/* Participants Section */}
-                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <legend className="text-xl font-bold text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
+                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <legend className="text-xl font-bold text-center lg:text-justify text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
                         Participants Profile
                     </legend>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -258,8 +258,8 @@ const FormComponent = () => {
                 </fieldset>
 
                 {/* Synopsis Section */}
-                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <legend className="text-xl font-bold text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
+                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <legend className="text-xl font-bold text-center lg:text-justify text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
                         Synopsis (Description)
                     </legend>
                     <div className="grid grid-cols-1 gap-6 mt-4">
@@ -287,8 +287,8 @@ const FormComponent = () => {
                 </fieldset>
 
                 {/* Report Prepared Section */}
-                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <legend className="text-xl font-bold text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
+                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <legend className="text-xl font-bold text-center lg:text-justify  bg-[#4472c4] text-white px-4 py-2 rounded-full">
                         Report Prepared By
                     </legend>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -387,8 +387,8 @@ const FormComponent = () => {
                     </div>
                 </fieldset>
                 {/* Signatures Section */}
-                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <legend className="text-xl font-bold text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
+                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <legend className="text-xl font-bold text-center lg:text-justify text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
                         Signatures
                     </legend>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -470,8 +470,8 @@ const FormComponent = () => {
                 </fieldset>
 
                 {/* Annexure Section */}
-                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <legend className="text-xl font-bold text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
+                <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <legend className="text-xl font-bold text-center lg:text-justify text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
                         Annexure
                     </legend>
                     <div className="grid grid-cols-1 gap-6 mt-4">
@@ -523,13 +523,10 @@ const FormComponent = () => {
                                                 placeholder="Enter speaker profile details..."
                                             />
                                         ) : (
-                                            <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#4472c4] transition-colors">
+                                            <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#4472c4] duration-400 focus-within:border-[#4472c4] focus-within:border-0 transition-all focus-within:ring-2 focus-within:ring-[#4472c4] focus-within:ring-offset-1">
                                                 <input
                                                     type="file"
                                                     multiple
-                                                    // {...register('annexure.speaker_profile'), {
-                                                    //     onChange: (e) => handleFileChange('speaker_profile', e.target.files)
-                                                    // }}
                                                     {...register(`annexure.speaker_profile`, {
                                                         required: `${section} is required`,
                                                         onChange: (e) => handleFileChange('speaker_profile', e.target.files)
@@ -570,7 +567,7 @@ const FormComponent = () => {
                                 return (
                                     <div key="action_taken_report">
                                         {/* Action Taken Report Section */}
-                                        <div  className="flex flex-col space-y-2">
+                                        <div className="flex flex-col space-y-2">
                                             <label className="font-medium text-gray-700">Action Taken Report *</label>
                                             <div className="flex space-x-4">
                                                 <label>
@@ -608,7 +605,7 @@ const FormComponent = () => {
                                                     placeholder="Enter action taken report details..."
                                                 />
                                             ) : (
-                                                <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#4472c4] transition-colors">
+                                                <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#4472c4] duration-400 focus-within:border-[#4472c4] focus-within:border-0 transition-all focus-within:ring-2 focus-within:ring-[#4472c4] focus-within:ring-offset-1">
                                                     <input
                                                         type="file"
                                                         multiple
@@ -652,7 +649,7 @@ const FormComponent = () => {
                             return (
                                 <div key={section} className="flex flex-col space-y-2">
                                     <label className="font-medium text-gray-700">{section} *</label>
-                                    <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#4472c4] transition-colors">
+                                    <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#4472c4] duration-400 focus-within:border-[#4472c4] focus-within:border-0 transition-all focus-within:ring-2 focus-within:ring-[#4472c4] focus-within:ring-offset-1">
                                         <input
                                             type="file"
                                             multiple
