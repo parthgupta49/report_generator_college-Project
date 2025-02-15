@@ -53,56 +53,86 @@ def generate_pdf(data, output_filename="output.pdf"):
         c.drawRightString(page_width - 110, margin_bottom + 10, f"{current_page}")
         c.setStrokeColor(HexColor("#4472c4"))
         c.line(50, margin_bottom + 25, page_width - 50, margin_bottom + 25)
-
-    # --- Table Creation ---
+# this version has worked correctly
     def create_table(heading, data, y_start):
         styles = getSampleStyleSheet()
         styles["Normal"].fontName = "Helvetica"
         styles["Normal"].fontSize = 10
         styles["Normal"].leading = 12
         
-        # Create a new style for the heading with white text
         heading_style = styles["Normal"]
-        heading_style.textColor = HexColor("#000000")  # Set text color to white
+        heading_style.textColor = "white"
 
+        # Original table data with header and all rows (including summary)
         table_data = [[Paragraph(f"<b>{heading}</b>", heading_style), ""]]
+        heading_style.textColor = HexColor("#000000")
+        
         for label, value in data:
             wrapped_label = Paragraph(f"<b>{label}</b>", styles["Normal"])
-            
-            # Handle image or text signature
             if isinstance(value, PlatypusImage):
                 wrapped_value = value
             else:
-                wrapped_value = Paragraph(str(value), styles["Normal"])
+                processed_text = str(value).replace('\n', '<br/>')
+                wrapped_value = Paragraph(processed_text, styles["Normal"])
             table_data.append([wrapped_label, wrapped_value])
 
-        # Table styling
         style = TableStyle([
             ('SPAN', (0,0), (1,0)),
-            ('BACKGROUND', (0,0), (-1,0), HexColor("#7399c9")),
+            ('BACKGROUND', (0,0), (-1,0), HexColor("#002147")),
             ('TEXTCOLOR', (0,0), (-1,0), HexColor("#FFFFFF")),
             ('BACKGROUND', (0,1), (0,-1), lightgrey),
             ('GRID', (0,0), (-1,-1), 0.5, HexColor("#171616")),
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ])
 
+        # Create and split initial table
         table = Table(table_data, colWidths=[150, 350])
         table.setStyle(style)
-        table.wrapOn(c, page_width, page_height)
-        table_height = table._height
 
-        # Page break check
-        if (y_start - table_height) < margin_bottom + 100:
-            c.showPage()
-            nonlocal current_page
-            current_page += 1
-            draw_header()
-            draw_footer()
-            y_start = page_height - margin_top - 100
+        avail_width = 500
+        split_tables = []
+        remaining_table = table
+        
+        while remaining_table:
+            available_height = y_start - margin_bottom - 30
+            parts = remaining_table.split(avail_width, available_height)
+            if not parts:
+                break
+            split_tables.append(parts[0])
+            remaining_table = parts[1] if len(parts) > 1 else None
 
-        # Draw table
-        table.drawOn(c, 50, y_start - table_height)
-        return y_start - table_height - 20
+        # Process splits to add headers while preserving all rows
+        final_tables = []
+        for i, tbl in enumerate(split_tables):
+            if i == 0:
+                # First table keeps original header
+                final_tables.append(tbl)
+            else:
+                # Subsequent tables: new header + all rows from split
+                # Preserve existing rows including summary
+                new_data = [table_data[0]] + tbl._cellvalues
+                new_table = Table(new_data, colWidths=[150, 350])
+                new_table.setStyle(style)
+                final_tables.append(new_table)
+
+        # Drawing logic remains the same
+        current_y = y_start
+        for tbl in final_tables:
+            tbl.wrapOn(c, avail_width, page_height)
+            tbl_height = tbl._height
+
+            if (current_y - tbl_height) < margin_bottom:
+                c.showPage()
+                nonlocal current_page
+                current_page += 1
+                draw_header()
+                draw_footer()
+                current_y = page_height - margin_top - 100
+
+            tbl.drawOn(c, 50, current_y - tbl_height)
+            current_y -= tbl_height + 20
+
+        return current_y
     
     
     # --- HOD Section ---
@@ -166,36 +196,34 @@ def generate_pdf(data, output_filename="output.pdf"):
         except:
             return y_position
 
+    
+    # version 2 of add_annexure : 
     def add_annexure(y_position):
         nonlocal current_page
-        y_position -= 20
+        page_content_height = page_height - margin_top - margin_bottom - 100  # Available space between header and footer
+        y_position -= 1
         if y_position < margin_bottom + 220:
             c.showPage()
             current_page += 1
             draw_header()
             draw_footer()
-            y_position = page_height - margin_top - 100 - 18
-
+            y_position = page_height - margin_top - 100 - 5
         c.setFont("Helvetica-Bold", 13)
         c.drawString(50, y_position, "Annexure")
         y_position -= 20
-
         annex_data = data.get('files', {}).get('annexure', {})
         speaker_profile_text = data.get('speakerProfile', {}).get('text', '')
         speaker_profile_images = data.get('files', {}).get('speaker_profile', {}).get('speakerProfile', '')
-
+        
         # Handle Speaker Profile
         if speaker_profile_text or speaker_profile_images:
             c.setFont("Helvetica-Bold", 11)
             c.drawString(50, y_position, "1. Speaker Profile")
             y_position -= 20
 
-            # Handle Text
             if speaker_profile_text:
                 c.setFont("Helvetica", 10)
                 text_lines = speaker_profile_text.split('\n')
-
-                # Handle wrapping and multiple lines
                 for line in text_lines:
                     if y_position < margin_bottom + 50:
                         c.showPage()
@@ -204,21 +232,16 @@ def generate_pdf(data, output_filename="output.pdf"):
                         draw_footer()
                         y_position = page_height - margin_top - 100 - 18
                     
-                    # Create TextObject and set its width for wrapping
                     text_object = c.beginText(50, y_position)
                     text_object.setFont("Helvetica", 10)
                     text_object.setTextOrigin(50, y_position)
-
-                    # Add the wrapped text using the textObject
-                    max_width = page_width - 100  # Adjust the width for the margin
+                    max_width = page_width - 100
                     wrapped_text = wrap_text(line, max_width, c)
                     text_object.textLines(wrapped_text)
                     c.drawText(text_object)
-                    y_position -= len(wrapped_text) * 12  # Adjust line height dynamically
-
+                    y_position -= len(wrapped_text) * 12
                 y_position -= 20
 
-            # Handle Images
             if speaker_profile_images:
                 x_pos = 50
                 max_width = 150
@@ -249,80 +272,128 @@ def generate_pdf(data, output_filename="output.pdf"):
                     row_height = max(row_height, scaled_h)
                 except:
                     pass
-
                 y_position -= row_height + 30
+                
+        # Define section layout configurations
+        section_config = {
+            'activity_photos': {'max_height': page_content_height, 'heading': "2. Photos of the activity"},
+            'attendance': {'max_height': page_content_height, 'heading': "3. Attendance of participants"},
+            'brochure_poster': {'max_height': page_content_height, 'heading': "4. Brochure/Poster"},
+            'website_screenshots': {'max_height': page_content_height, 'heading': "5. Website Screenshots"},
+            'student_feedback': {'max_height': page_content_height / 2, 'heading': "6. Student Feedback"},
+        }
 
-    
-
-        # Handle other sections (images only)
-        sections = [
-            ('activity_photos', "2. Photos of the activity"),
-            ('attendance', "3. Attendance of participants"),
-            ('brochure_poster', "4. Brochure/Poster"),
-            ('website_screenshots', "5. Website Screenshots"),
-            ('student_feedback', "6. Student Feedback"),
-        ]
-
-        for field, heading in sections:
+        for field, config in section_config.items():
             images = annex_data.get(field, [])
             if not images:
                 continue
 
-            # Check page space
+            # Check page space for heading
             if y_position < margin_bottom + 220:
                 c.showPage()
                 current_page += 1
                 draw_header()
                 draw_footer()
-                y_position = page_height - margin_top - 100 - 18
+                y_position = page_height - margin_top - 100 - 5
 
             # Add heading
             c.setFont("Helvetica-Bold", 11)
-            c.drawString(50, y_position, heading)
-            y_position -= 10
+            c.drawString(50, y_position, config['heading'])
+            y_position -= 5  # Space after heading
 
-            # Draw images in grid
-            x_pos      = 50
-            max_width  = 150
-            row_height = 0
-            
             for img_path in images:
                 try:
                     img = Image.open(img_path)
                     img_w, img_h = img.size
                     aspect = img_w / img_h
-                    scaled_w = min(max_width, img_w)
-                    scaled_h = scaled_w / aspect
+                    
+                    # Calculate maximum available height
+                    max_available_height = y_position - margin_bottom - 10  # 50px buffer
+                    target_height = min(config['max_height'], max_available_height)
+                    
+                    # Calculate width based on target height
+                    scaled_h = min(target_height, img_h)
+                    scaled_w = scaled_h * aspect
+                    
+                    # Ensure width doesn't exceed page width
+                    if scaled_w > (page_width - 100):
+                        scaled_w = page_width - 100
+                        scaled_h = scaled_w / aspect
+                        scaled_h = min(scaled_h, config['max_height'])
 
-                    if x_pos + scaled_w > page_width - 50:
-                        x_pos = 50
-                        y_position -= row_height + 15
-                        row_height = 0
+                    if (config['heading'] != '3. Attendance of participants') and (config['heading'] != '6. Student Feedback') and (config["heading"] != '2. Photos of the activity') and (config['heading'] != '5. Website Screenshots') :
+                        # Check if image fits vertically
+                        if scaled_h > (y_position - margin_bottom - 100): # changing
+                            # Need to reduce height to fit
+                            scaled_h = y_position - margin_bottom - 50
+                            scaled_w = scaled_h * aspect
+                            
+                    
+                    elif (config['heading'] == '6. Student Feedback'):
+                        # Check if image fits vertically
+                        if scaled_h > ((y_position - margin_bottom - 10)/2) and y_position < page_content_height/2 - margin_bottom - margin_top: # changing
+                            # Need to reduce height to fit
+                            scaled_h = (y_position - margin_bottom - 10)/2
+                            scaled_w = scaled_h * aspect
+                            
+                    elif (config["heading"] == '2. Photos of the activity'):
+                        # Check if image fits vertically
+                        if (y_position - scaled_h) < margin_bottom + 50:
+                            c.showPage()
+                            current_page += 1
+                            draw_header()
+                            draw_footer()
+                            y_position = page_height - margin_top - 100
+                            scaled_h = min(config['max_height'], y_position - margin_bottom - 50 - 200)
+                            scaled_w = scaled_h * aspect
+                            c.setFont("Helvetica-Bold", 11)
+                            c.drawString(50, y_position, config['heading'])
+                            y_position -= 5
+                        
+                        
+                    
+                    else:
+                        # Check if image fits vertically
+                        if scaled_h > (y_position - margin_bottom - 100) and y_position > 300: # changing
+                            # Need to reduce height to fit
+                            scaled_h = y_position - margin_bottom - 50
+                            scaled_w = scaled_h * aspect
 
-                    if y_position - scaled_h < margin_bottom + 50:
+                    # Check if we need a new page
+                    if (y_position - scaled_h) < margin_bottom + 50:
                         c.showPage()
                         current_page += 1
                         draw_header()
                         draw_footer()
                         y_position = page_height - margin_top - 100
-                        x_pos = 50
-                        row_height = 0
+                        scaled_h = min(config['max_height'], y_position - margin_bottom - 50)
+                        scaled_w = scaled_h * aspect
+                        if scaled_w > (page_width - 100):
+                            scaled_w = page_width - 100
+                            scaled_h = scaled_w / aspect
+                        c.setFont("Helvetica-Bold", 11)
+                        c.drawString(50, y_position, config['heading'])
+                        y_position -= 5
 
-                    c.drawImage(img_path, x_pos, y_position - scaled_h, width=scaled_w, height=scaled_h)
-                    x_pos += scaled_w + 15
-                    row_height = max(row_height, scaled_h)
-                except:
+
+                    # Center image horizontally
+                    x_pos = (page_width - scaled_w) / 2 if config['max_height'] == page_content_height else 50
+                    
+                    x_pos = (page_width - scaled_w) / 2 if config['heading'] == '6. Student Feedback' else 50
+                    # Draw image
+                    c.drawImage(img_path, x_pos, y_position - scaled_h, 
+                            width=scaled_w, height=scaled_h)
+                    
+                    # Update position
+                    y_position -= scaled_h + 25  # 30px spacing after image
+
+                except Exception as e:
+                    print(f"Error loading image {img_path}: {str(e)}")
                     continue
-
-            y_position -= row_height + 30
-            
-            
             
         action_taken_report_text = data.get('actionTakenReport', {}).get('text', '')
         action_taken_report_images = annex_data.get('action_taken_report', [])
-        
         # Existing code for other sections...
-
         # Handle Action Taken Report
         if action_taken_report_text or action_taken_report_images:
             if y_position < margin_bottom + 200:
@@ -340,7 +411,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                 c.setFont("Helvetica", 10)
                 text_lines = action_taken_report_text.split('\n')
                 for line in text_lines:
-                    if y_position < margin_bottom + 200:
+                    if y_position < margin_bottom + 100:
                         c.showPage()
                         current_page += 1
                         draw_header()
@@ -394,9 +465,9 @@ def generate_pdf(data, output_filename="output.pdf"):
                         continue
 
                 y_position -= row_height + 30
-
+        
         return y_position
-    
+
     
     def wrap_text(text, max_width, canvas):
         """
@@ -422,6 +493,8 @@ def generate_pdf(data, output_filename="output.pdf"):
             wrapped_lines.append(current_line)
 
         return wrapped_lines
+    
+    
     # --- Main Content Flow ---
     def add_content():
         nonlocal current_page
