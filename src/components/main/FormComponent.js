@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 const FormComponent = () => {
+
+    // Add new state variables for newsletter email
+    const [sendNewsletter, setSendNewsletter] = useState(false);
+    const [newsletterEmail, setNewsletterEmail] = useState('');
+
+    const [submittingAction, setSubmittingAction] = useState(null); // Track which action is submitting
+    // ... other existing state variables
+
     const [organizerSignatureType, setOrganizerSignatureType] = useState('text');
     const [hodInputType, setHodInputType] = useState('text');
     const [speakerProfileType, setSpeakerProfileType] = useState('text'); // 'text' or 'image'
@@ -14,10 +22,23 @@ const FormComponent = () => {
         setValue
     } = useForm();
 
-    async function formSubmitHandler(data) {
+
+    async function formSubmitHandler(data, event) {
         // console.log(data["reportPrepared"])
         console.log(data);
         let formData = new FormData();
+        // needed to handle the newsletter thing
+        const action = event.nativeEvent.submitter?.value || 'report';
+        setSubmittingAction(action);
+        formData.append('action', action);
+
+        // Add newsletter email if checkbox is checked
+        if (sendNewsletter && newsletterEmail) {
+            formData.append('newsletterEmail', newsletterEmail);
+        }
+
+
+
 
         // Clean up signature data based on input type
         const cleanedData = {
@@ -106,7 +127,11 @@ const FormComponent = () => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'event_report.pdf';
+
+                // a.download = 'event_report.pdf';
+
+                // Set filename based on action
+                a.download = action === 'newsletter' ? 'newsletter.pdf' : 'report.pdf';
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -116,7 +141,9 @@ const FormComponent = () => {
             }
 
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Network error:', error);
+        } finally {
+            setSubmittingAction(null); // Reset after submission
         }
 
     }
@@ -129,7 +156,12 @@ const FormComponent = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-            <form onSubmit={handleSubmit(formSubmitHandler)} className="max-w-6xl mx-auto space-y-6">
+            <form
+                // onSubmit={handleSubmit(formSubmitHandler)}
+                onSubmit={
+                    handleSubmit((data, event) => formSubmitHandler(data, event)
+                    )}
+                className="max-w-6xl mx-auto space-y-6">
                 {/* Header Section */}
                 <fieldset className="bg-white shadow-sm rounded-lg p-6 hover:shadow-lg transition-shadow">
                     <legend className="text-xl font-bold text-center lg:text-justify text-gray-900 bg-[#4472c4] text-white px-4 py-2 rounded-full">
@@ -683,15 +715,64 @@ const FormComponent = () => {
                     </div>
                 </fieldset>
 
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-[#4472c4] text-white py-3 px-6 rounded-lg font-medium hover:bg-[#365a9d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {isSubmitting ? 'Generating Report...' : 'Generate Report'}
-                </button>
+
+                {/* Add newsletter email section */}
+                <div className="mt-4">
+                    <label className="flex items-center gap-2 mb-2">
+                        <input
+                            type="checkbox"
+                            checked={sendNewsletter}
+                            onChange={(e) => setSendNewsletter(e.target.checked)}
+                            className="form-checkbox h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                        />
+                        <span className="text-gray-700">Send newsletter to email</span>
+                    </label>
+
+                    {sendNewsletter && (
+                        <div className="mt-2">
+                            <input
+                                type="email"
+                                placeholder="Enter email address"
+                                value={newsletterEmail}
+                                onChange={(e) => setNewsletterEmail(e.target.value)}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                required
+                            />
+                        </div>
+                    )}
+                </div>
+
+                <div className='flex gap-4 mt-8 flex-col sm:flex-row'>
+                    <button
+                        type="submit"
+                        name="action"
+                        value="report"
+                        disabled={isSubmitting}
+                        className="w-full bg-[#4472c4] text-white py-3 px-6 rounded-lg font-medium hover:bg-[#365a9d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {/* {isSubmitting ? 'Generating Report...' : 'Generate Report'} */}
+                        {isSubmitting && submittingAction === 'report'
+                            ? 'Generating Report...'
+                            : 'Generate Report'}
+                    </button>
+
+                    <button
+                        type="submit"
+                        name="action"
+                        value="newsletter"
+                        disabled={isSubmitting}
+                        className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {/* {isSubmitting ? 'Generating Newsletter...' : 'Generate Newsletter'} */}
+                        {isSubmitting && submittingAction === 'newsletter'
+                            ? 'Generating Newsletter...'
+                            : 'Generate Newsletter'}
+                    </button>
+                </div>
+
+
             </form>
-        </div>
+        </div >
     );
 };
 

@@ -1,4 +1,3 @@
-import sys
 import json
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -7,8 +6,31 @@ from reportlab.lib.colors import HexColor, lightgrey
 from reportlab.platypus import Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Image as PlatypusImage
-from PIL import Image
-from reportlab.lib.units import inch
+from PIL import Image   
+from gradio_client import Client
+import os
+HF_TOKEN = os.environ['HF_TOKEN']
+
+# from dotenv import load_dotenv
+# load_dotenv()  # Load from .env file
+
+import sys
+import io
+# Fix encoding for all platforms
+if sys.stdout.encoding != 'UTF-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.stderr.encoding != 'UTF-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+client = Client("Qwen/Qwen2.5-Max-Demo",hf_token=HF_TOKEN)
+
+def generateSummaryUsingModel(data):
+    result = client.predict(
+		query=f"Generate a summary (minimum 250 words) in a paragraph on the basis of the provided event report inputs :\n{data}",
+		api_name="/model_chat"
+    )
+    formatted_result = result[1][0][1]
+    return formatted_result
+
 def generate_pdf(data, output_filename="output.pdf"):
     c = canvas.Canvas(output_filename, pagesize=letter)
     page_width, page_height = letter
@@ -37,7 +59,7 @@ def generate_pdf(data, output_filename="output.pdf"):
 
         # Activity and Date inputs
         c.setFont("Helvetica", 12)
-        y_position = page_height - margin_top - 60
+        y_position = page_height - margin_top - 50
         c.drawString(50, y_position, f"Activity: {data['header']['activityName']}")
         c.drawString(50, y_position - 20, f"Date(s): {data['header']['activityDate']}")
 
@@ -53,6 +75,7 @@ def generate_pdf(data, output_filename="output.pdf"):
         c.drawRightString(page_width - 110, margin_bottom + 10, f"{current_page}")
         c.setStrokeColor(HexColor("#4472c4"))
         c.line(50, margin_bottom + 25, page_width - 50, margin_bottom + 25)
+
 # this version has worked correctly
     def create_table(heading, data, y_start):
         styles = getSampleStyleSheet()
@@ -129,7 +152,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                 draw_footer()
                 current_y = page_height - margin_top - 100
 
-            tbl.drawOn(c, 50, current_y - tbl_height)
+            tbl.drawOn(c, 50, current_y - tbl_height + 10)
             current_y -= tbl_height + 20
 
         return current_y
@@ -149,17 +172,18 @@ def generate_pdf(data, output_filename="output.pdf"):
         max_image_height = 100  # Assuming max height for space check
         required_space = 30 + 10 + max_image_height + 20 + 40  # line + spacing + image + text spacing + text
 
-        # Check page space
-        if (y_position - required_space) < margin_bottom:
-            c.showPage()
-            current_page += 1
-            draw_header()
-            draw_footer()
-            y_position = page_height - margin_top - 100
+       
         
         right_margin = page_width - 50
         if hod_text and not hod_signature:
-                text_y = y_position - 15
+                # Check page space
+                if (y_position - required_space + max_image_height) < margin_bottom:
+                    c.showPage()
+                    current_page += 1
+                    draw_header()
+                    draw_footer()
+                    y_position = page_height - margin_top - 100 + 15
+                text_y = y_position
                 c.setFont("Helvetica-Bold",15)
                 c.drawRightString(right_margin,text_y,hod_text)
                 c.setFont("Helvetica-Bold", 12)
@@ -169,7 +193,16 @@ def generate_pdf(data, output_filename="output.pdf"):
 
         try:
             
-            if hod_signature : 
+            if hod_signature :
+                # Check page space
+                extra_y = 10
+                if (y_position - required_space + 50) < margin_bottom:
+                    c.showPage()
+                    current_page += 1
+                    draw_header()
+                    draw_footer()
+                    y_position = page_height - margin_top - 90
+                    extra_y = 20
                 img = Image.open(hod_signature)
                 img_w, img_h = img.size
                 aspect = img_w / img_h
@@ -180,7 +213,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                 # Position calculations
                 right_margin = page_width - 50
                 image_x = right_margin - scaled_w
-                image_y = y_position - scaled_h - 20
+                image_y = y_position - scaled_h + extra_y
 
                 # Draw image
                 c.drawImage(hod_signature, image_x, image_y, width=scaled_w, height=scaled_h)
@@ -244,7 +277,7 @@ def generate_pdf(data, output_filename="output.pdf"):
 
             if speaker_profile_images:
                 x_pos = 50
-                max_width = 150
+                max_width = 250
                 row_height = 0
                 try:
                     img = Image.open(speaker_profile_images)
@@ -299,7 +332,7 @@ def generate_pdf(data, output_filename="output.pdf"):
             # Add heading
             c.setFont("Helvetica-Bold", 11)
             c.drawString(50, y_position, config['heading'])
-            y_position -= 5  # Space after heading
+            y_position -= 10  # Space after heading
 
             for img_path in images:
                 try:
@@ -308,7 +341,19 @@ def generate_pdf(data, output_filename="output.pdf"):
                     aspect = img_w / img_h
                     
                     # Calculate maximum available height
-                    max_available_height = y_position - margin_bottom - 10  # 50px buffer
+                    max_available_height = y_position - margin_bottom - 30  # 50px buffer
+                    if (max_available_height < margin_bottom - 200 or (y_position < margin_bottom + 200)):
+                            c.showPage()
+                            current_page += 1
+                            draw_header()
+                            draw_footer()
+                            y_position = page_height - margin_top - 100
+                            
+                            c.setFont("Helvetica-Bold", 11)
+                            c.drawString(50, y_position, config['heading'])
+                            y_position -= 5
+                            
+                            max_available_height = y_position - margin_bottom - 10
                     target_height = min(config['max_height'], max_available_height)
                     
                     # Calculate width based on target height
@@ -338,18 +383,19 @@ def generate_pdf(data, output_filename="output.pdf"):
                             
                     elif (config["heading"] == '2. Photos of the activity'):
                         # Check if image fits vertically
-                        if (y_position - scaled_h) < margin_bottom + 50:
-                            c.showPage()
-                            current_page += 1
-                            draw_header()
-                            draw_footer()
-                            y_position = page_height - margin_top - 100
-                            scaled_h = min(config['max_height'], y_position - margin_bottom - 50 - 200)
-                            scaled_w = scaled_h * aspect
-                            c.setFont("Helvetica-Bold", 11)
-                            c.drawString(50, y_position, config['heading'])
-                            y_position -= 5
-                        
+                        # scaled_h-=20
+                        # if (y_position - scaled_h) < margin_bottom:
+                        #     c.showPage()
+                        #     current_page += 1
+                        #     draw_header()
+                        #     draw_footer()
+                        #     y_position = page_height - margin_top - 100
+                        #     scaled_h = min(config['max_height'], y_position - margin_bottom - 50 - 200)
+                        #     scaled_w = scaled_h * aspect
+                        #     c.setFont("Helvetica-Bold", 11)
+                        #     c.drawString(50, y_position, config['heading'])
+                        #     y_position -= 5
+                        pass
                         
                     
                     else:
@@ -360,7 +406,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                             scaled_w = scaled_h * aspect
 
                     # Check if we need a new page
-                    if (y_position - scaled_h) < margin_bottom + 50:
+                    if (y_position - scaled_h) < margin_bottom + 50 and config["heading"]!='2. Photos of the activity':
                         c.showPage()
                         current_page += 1
                         draw_header()
@@ -379,6 +425,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                     # Center image horizontally
                     x_pos = (page_width - scaled_w) / 2 if config['max_height'] == page_content_height else 50
                     
+                    # for centering studend feedback section
                     x_pos = (page_width - scaled_w) / 2 if config['heading'] == '6. Student Feedback' else 50
                     # Draw image
                     c.drawImage(img_path, x_pos, y_position - scaled_h, 
@@ -498,12 +545,12 @@ def generate_pdf(data, output_filename="output.pdf"):
     # --- Main Content Flow ---
     def add_content():
         nonlocal current_page
-        y_pos = page_height - margin_top - 105
+        y_pos = page_height - margin_top - 95
         
         # Activity Report Title
         c.setFont("Helvetica-Bold", 10)
         c.drawCentredString(page_width/2, y_pos, "Activity Report")
-        y_pos -= 10
+        y_pos -= 15
 
         # Main Tables
         tables = [
@@ -546,7 +593,7 @@ def generate_pdf(data, output_filename="output.pdf"):
         organizer_signature = data.get('files', {}).get('signatures', {}).get('organizer')
         if organizer_signature:
             try:
-                img = PlatypusImage(organizer_signature, width=120, height=120)
+                img = PlatypusImage(organizer_signature, width=250, height=100)
                 report_prepared_rows.append(("Signature:", img))
             except:
                 report_prepared_rows.append(("Signature:", "Signature Image Error"))
@@ -574,12 +621,117 @@ def generate_pdf(data, output_filename="output.pdf"):
         # Add HOD section again
         y_pos = add_hod_section(y_pos)
 
+    
+
     # --- Execution ---
     draw_header()
     draw_footer()
     add_content()
     c.save()
+
+def generate_newsletter(data, output_filename="newsletter.pdf"):
+    c = canvas.Canvas(output_filename, pagesize=letter)
+    page_width, page_height = letter
+    margin = 50
+    current_y = page_height - margin
+    
+    try:
+        # --- Title Section ---
+        title = data['generalInfo']['title']
+        c.setFont("Helvetica-Bold", 18)
+        x_center = 612 / 2  
+        c.drawCentredString(x_center,current_y,title)
+        current_y -= 60
+
+        # --- Activity Photos ---
+        photos = data['files']['annexure'].get('activity_photos', [])
+        if photos:
+            c.setFont("Helvetica-Bold", 14)
+            c.drawString(margin, current_y, "Event Photos")
+            current_y -= 10
+            
+            # Only take first 2 images
+            selected_photos = photos[:2]
+            
+            # Calculate dimensions
+            img_gap = 10  # Minimal gap between images
+            img_height = 200  # Fixed height
+            
+            # Calculate image width (full width minus gap and margins)
+            available_width = page_width - 2 * (margin/2 + 30) - img_gap
+            img_width = available_width / 2
+            
+            x_pos = margin  # Start at left margin
+            for img_path in selected_photos:
+                try:
+                    img = ImageReader(img_path)
+                    c.drawImage(img, x_pos, current_y - img_height, 
+                            width=img_width, 
+                            height=img_height,
+                            preserveAspectRatio=True,
+                            mask='auto')
+                    x_pos += img_width + img_gap
+                except Exception as e:
+                    print(f"Error loading image: {str(e)}")
+                    continue
+            
+            current_y -= img_height + 20  # Space after images
+
+        # --- Synopsis Sections ---
+        synopsis = data['synopsis']
+        sections = [
+            ("Highlights", synopsis['highlights']),
+            ("Key Takeaways", synopsis['takeaways']),
+            ("Summary", synopsis['summary'])
+        ]
+
+        styles = getSampleStyleSheet()
+        styles["Normal"].fontName = "Helvetica"
+        styles["Normal"].fontSize = 12
+        styles["Normal"].leading = 14
+        our_data = ""
+
+        for heading, content in sections:
+            # Draw Heading
+            # c.setFont("Helvetica-Bold", 14)
+            # c.drawString(margin, current_y, f"{heading}:")
+            # current_y -= 25
+            our_data+=heading
+
+            # Draw Content
+            # text = Paragraph(content, styles["Normal"])
+            our_data+="\n"+content
+            # text.wrap(page_width - 2*margin, page_height)
+            # text.drawOn(c, margin, current_y - text.height)
+            # current_y -= text.height + 30
+
+        paragraph = generateSummaryUsingModel(our_data)
+        # sample inputs
+        # paragraph = """1) Understanding Breast Cancer: The seminar began with an overview of breast cancer, explaining its nature as a mass of uncontrollable cells that can develop in the lining of milk ducts. Risk factors, stages, and signs and symptoms were discussed, emphasizing the importance of Breast Self-Examination (BSE). 2) Naturopathy in Breast Cancer Treatment: Dr. Mahi Gupta elaborated on the principles of naturopathy, which focus on treating the whole person, identifying root causes, and embracing natural remedies. 3) Natural Healing Techniques: A variety of sustainable and holistic approaches were presented, including hydrotherapy, mud therapy, steam baths, herbal teas, oil massages, acupuncture, and yoga. Special attention was given to the benefits of antioxidants, probiotics, and specific practices like Nabhi Chikitsa and intermittent fasting."""
+        text = Paragraph(paragraph,styles["Normal"])
+        text.wrap(page_width - 2*margin, page_height)
+        text.drawOn(c, margin, current_y - text.height)
+        current_y -= text.height + 30
+        # Page Break Check
+        # if current_y < margin + 50:
+        #     c.showPage()
+        #     current_y = page_height - margin
+        #     c.setFont("Helvetica", 12)  # Reset font after page break
+            # c.drawString(50,current_y,our_data)
+
+    finally:
+        c.save()
+
 if __name__ == "__main__":
+    data = None
     with open(sys.argv[1], 'r') as f:
         data = json.load(f)
-    generate_pdf(data)
+        
+    action = data.get('action', 'report')
+    if action == 'newsletter':
+        generate_newsletter(data, "newsletter.pdf")
+    else :
+        generate_pdf(data,"output.pdf")
+    
+    
+    

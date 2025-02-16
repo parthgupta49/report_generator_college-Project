@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const multer = require('multer');
 const { exec } = require('node:child_process');
@@ -7,6 +6,7 @@ const fs = require('node:fs');
 const cors = require('cors')
 const app = express();
 const upload = multer({ dest: 'uploads/' });
+const {mailSender} = require('./utils/nodemailer')
 app.use(cors({
     origin : "https://csbyc-event-report-generator.vercel.app",
     // origin: "http://localhost:3000",
@@ -14,8 +14,15 @@ app.use(cors({
 }));
 
 app.post('/generate-pdf', upload.any(), (req, res) => {
-    // Extract JSON data
+    // Extract JSON data and action type
     const jsonData = JSON.parse(req.body.data);
+    const action = req.body.action || 'report'; // Default to report
+
+    // Extract newsletter email from form data
+    const newsletterEmail = req.body.newsletterEmail;
+    if (newsletterEmail) {
+        console.log(newsletterEmail);
+    }
 
     // Organize files
     const files = {
@@ -23,10 +30,10 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
             organizer: req.files.find(f => f.fieldname.startsWith('organizer_signature'))?.path,
             hod: req.files.find(f => f.fieldname.startsWith('hod_signature'))?.path
         },
+        annexure: {},
         speaker_profile: {
             speakerProfile: req.files.find(f => f.fieldname.startsWith('speaker_profile'))?.path
-        },
-        annexure: {}
+        }
     };
 
     // Process annexure files
@@ -63,10 +70,11 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
         }
     });
 
-    // Prepare final payload
+    // Prepare final payload with action type
     const payload = {
         ...jsonData,
-        files
+        files,
+        action: action
     };
 
     // Save to temporary file
@@ -78,32 +86,54 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
         try {
             if (error) throw error;
 
-            // Verify PDF exists
-            if (!fs.existsSync('output.pdf')) {
-                throw new Error('Python script did not generate output.pdf');
-            }
+            // Determine output filename based on action
+            const outputFilename = action === 'newsletter' ? 'newsletter.pdf' : 'output.pdf';
 
+            // Verify PDF exists
+            if (!fs.existsSync(outputFilename)) {
+                throw new Error(`Python script did not generate ${outputFilename}`);
+            }
             // Send PDF
-            const pdf = fs.readFileSync('output.pdf');
+            const pdf = fs.readFileSync(outputFilename);
             res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
             res.setHeader('Pragma', 'no-cache');
             res.setHeader('Expires', '0');
             res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename="report.pdf"');
+            res.setHeader('Content-Disposition', `attachment; filename="${outputFilename}"`);
             res.send(pdf);
+
+            // Then handle email sending if needed (non-blocking)
+            if (outputFilename === "newsletter.pdf" && newsletterEmail) {
+                try {
+                    const pdfBuffer = fs.readFileSync(outputFilename);
+                    await mailSender(
+                        newsletterEmail,
+                        `<p>Please find attached the newsletter.</p>`,
+                        {
+                            filename: 'newsletter.pdf',
+                            content: pdfBuffer
+                        }
+                    );
+                    console.log('Email sent successfully');
+                } catch (emailError) {
+                    console.error('Email sending failed:', emailError);
+                    // Consider logging this to an error tracking service
+                }
+            }
 
         } catch (err) {
             console.error('Error:', err);
             res.status(500).json({
-                message: '-------- Internal Server Error ------',
+                message: 'Internal Server Error',
                 error: err.message,
                 success: false
-            })
+            });
         } finally {
             // Cleanup all temporary files
             const filesToDelete = [
                 tempFile,
-                'output.pdf',
+                ...(action === 'report' ? ['output.pdf'] : []),
+                ...(action === 'newsletter' ? ['newsletter.pdf'] : []),
                 ...req.files.map(f => f.path)
             ];
 

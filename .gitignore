@@ -25,3 +25,12 @@ yarn-error.log*
 
 
 /src/components/main/FormComponent2.js
+/server/node_modules
+/server/main.py
+/server/main2.py
+/server/activity_report.pdf
+/server/uploads
+tempCodeRunnerFile.js
+.env
+event_report.pdf
+tryingModel.py
