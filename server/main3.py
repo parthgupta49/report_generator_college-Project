@@ -202,7 +202,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                     draw_header()
                     draw_footer()
                     y_position = page_height - margin_top - 90
-                    extra_y = 20
+                    # extra_y = 20
                 img = Image.open(hod_signature)
                 img_w, img_h = img.size
                 aspect = img_w / img_h
