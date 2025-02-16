@@ -195,7 +195,7 @@ def generate_pdf(data, output_filename="output.pdf"):
             
             if hod_signature :
                 # Check page space
-                extra_y = 10
+                extra_y = 5
                 if (y_position - required_space + 50) < margin_bottom:
                     c.showPage()
                     current_page += 1
