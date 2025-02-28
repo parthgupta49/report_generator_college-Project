@@ -17,10 +17,6 @@ HF_TOKEN = os.environ['HF_TOKEN']
 GEMINI_API = os.environ['GEMINI_API']
 
 
-
-# from dotenv import load_dotenv
-# load_dotenv()  # Load from .env file
-
 import sys
 import io
 # Fix encoding for all platforms
