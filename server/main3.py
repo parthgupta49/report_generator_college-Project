@@ -8,8 +8,20 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Image as PlatypusImage
 from PIL import Image   
 from gradio_client import Client
+
+from google import genai
+from google.genai import types
+
 import os
 HF_TOKEN = os.environ['HF_TOKEN']
+GEMINI_API = os.environ['GEMINI_API']
+
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+
 
 # from dotenv import load_dotenv
 # load_dotenv()  # Load from .env file
@@ -21,15 +33,28 @@ if sys.stdout.encoding != 'UTF-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 if sys.stderr.encoding != 'UTF-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-client = Client("Qwen/Qwen2.5-Max-Demo",hf_token=HF_TOKEN)
+# client = Client("Qwen/Qwen2.5-Max-Demo",hf_token=HF_TOKEN)
+client = genai.Client(api_key=GEMINI_API)
 
 def generateSummaryUsingModel(data):
-    result = client.predict(
-		query=f"Generate a summary (minimum 250 words) in a paragraph on the basis of the provided event report inputs :\n{data}",
-		api_name="/model_chat"
-    )
-    formatted_result = result[1][0][1]
-    return formatted_result
+    # result = client.predict(
+		# query=f"Generate a summary (minimum 250 words) in a paragraph on the basis of the provided event report inputs :\n{data}",
+	# 	api_name="/model_chat"
+    # )
+    # formatted_result = result[1][0][1]
+    
+    
+    query=f"Generate a summary (minimum 250 words) in a paragraph on the basis of the provided event report inputs :\n{data}",
+    response = client.models.generate_content(
+    # model="gemini-2.0-flash-lite-preview-02-05",
+    model="gemini-2.0-flash",
+    contents=query)
+    # print(response.text)
+    
+    
+    
+    
+    return response.text
 
 def generate_pdf(data, output_filename="output.pdf"):
     c = canvas.Canvas(output_filename, pagesize=letter)
@@ -153,7 +178,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                 current_y = page_height - margin_top - 100
 
             tbl.drawOn(c, 50, current_y - tbl_height + 10)
-            current_y -= tbl_height + 20
+            current_y -= tbl_height + 10
 
         return current_y
     
@@ -229,7 +254,6 @@ def generate_pdf(data, output_filename="output.pdf"):
         except:
             return y_position
 
-    
     # version 2 of add_annexure : 
     def add_annexure(y_position):
         nonlocal current_page
@@ -258,12 +282,12 @@ def generate_pdf(data, output_filename="output.pdf"):
                 c.setFont("Helvetica", 10)
                 text_lines = speaker_profile_text.split('\n')
                 for line in text_lines:
-                    if y_position < margin_bottom + 50:
+                    if y_position < margin_bottom + 30:
                         c.showPage()
                         current_page += 1
                         draw_header()
                         draw_footer()
-                        y_position = page_height - margin_top - 100 - 18
+                        y_position = page_height - margin_top - 100
                     
                     text_object = c.beginText(50, y_position)
                     text_object.setFont("Helvetica", 10)
@@ -322,7 +346,7 @@ def generate_pdf(data, output_filename="output.pdf"):
                 continue
 
             # Check page space for heading
-            if y_position < margin_bottom + 220:
+            if y_position < margin_bottom + 350 or ((config["heading"] == '2. Photos of the activity') and (y_position <  margin_bottom + 500)):
                 c.showPage()
                 current_page += 1
                 draw_header()
@@ -334,109 +358,163 @@ def generate_pdf(data, output_filename="output.pdf"):
             c.drawString(50, y_position, config['heading'])
             y_position -= 10  # Space after heading
 
-            for img_path in images:
-                try:
-                    img = Image.open(img_path)
-                    img_w, img_h = img.size
-                    aspect = img_w / img_h
+            if config["heading"] == "2. Photos of the activity":
+
                     
-                    # Calculate maximum available height
-                    max_available_height = y_position - margin_bottom - 30  # 50px buffer
-                    if (max_available_height < margin_bottom - 200 or (y_position < margin_bottom + 200)):
+                max_available_height = (y_position - margin_bottom - 60) / 2  # Divide space for two photos
+                count = 1
+                for img_path in images:
+                    if ((y_position <  margin_bottom + 500) and count%2 != 0):
+                        c.showPage()
+                        current_page += 1
+                        draw_header()
+                        draw_footer()
+                        y_position = page_height - margin_top - 95
+                        c.setFont("Helvetica-Bold", 11)
+                        c.drawString(50, y_position, config['heading'])
+                        y_position -= 10  # Space after heading
+                    try:
+                        img = Image.open(img_path)
+                        img_w, img_h = img.size
+                        aspect = img_w / img_h
+
+                        # Calculate height for two photos
+                        target_height = min(config['max_height'] / 2, max_available_height)  # Half the max height for each photo
+
+                        # Calculate width based on target height
+                        scaled_h = min(target_height, img_h)
+                        scaled_w = scaled_h * aspect
+
+                        # Ensure width doesn't exceed page width
+                        if scaled_w > (page_width - 100):
+                            scaled_w = page_width - 100
+                            scaled_h = scaled_w / aspect
+
+                        # Center image horizontally
+                        x_pos = 50
+
+                        # Draw image
+                        c.drawImage(img_path, x_pos, y_position - scaled_h, width=scaled_w, height=scaled_h)
+                        count+=1
+                        # Update position for the next photo
+                        y_position -= scaled_h + 15  # 25px spacing after image
+
+                    except Exception as e:
+                        print(f"Error loading image {img_path}: {str(e)}")
+                        continue
+            else:
+                for img_path in images:
+                    try:
+                        img = Image.open(img_path)
+                        img_w, img_h = img.size
+                        aspect = img_w / img_h
+                        
+                        # Calculate maximum available height
+                        max_available_height = y_position - margin_bottom - 30  # 50px buffer
+                        if (max_available_height < margin_bottom - 200 or (y_position < margin_bottom + 200)):
+                                c.showPage()
+                                current_page += 1
+                                draw_header()
+                                draw_footer()
+                                y_position = page_height - margin_top - 100
+                                
+                                c.setFont("Helvetica-Bold", 11)
+                                c.drawString(50, y_position, config['heading'])
+                                y_position -= 5
+                                
+                                max_available_height = y_position - margin_bottom - 10
+                        target_height = min(config['max_height'], max_available_height)
+                        
+                        # Calculate width based on target height
+                        scaled_h = min(target_height, img_h)
+                        scaled_w = scaled_h * aspect
+                        
+                        # Ensure width doesn't exceed page width
+                        if scaled_w > (page_width - 100):
+                            scaled_w = page_width - 100
+                            scaled_h = scaled_w / aspect
+                            scaled_h = min(scaled_h, config['max_height'])
+
+                        if (config['heading'] != '3. Attendance of participants') and (config['heading'] != '6. Student Feedback') and (config["heading"] != '2. Photos of the activity') and (config['heading'] != '5. Website Screenshots') :
+                            # Check if image fits vertically
+                            if scaled_h > (y_position - margin_bottom - 100): # changing
+                                # Need to reduce height to fit
+                                scaled_h = y_position - margin_bottom - 50
+                                scaled_w = scaled_h * aspect
+                                
+                        
+                        elif (config['heading'] == '6. Student Feedback'):
+                            # Check if image fits vertically
+                            if scaled_h > ((y_position - margin_bottom - 10)/2) and y_position < page_content_height/2 - margin_bottom - margin_top: # changing
+                                # Need to reduce height to fit
+                                scaled_h = (y_position - margin_bottom - 10)/2
+                                scaled_w = scaled_h * aspect
+                                
+                        elif (config["heading"] == '2. Photos of the activity'):
+                            # Check if image fits vertically
+                            # scaled_h-=20
+                            # if (y_position - scaled_h) < margin_bottom:
+                            #     c.showPage()
+                            #     current_page += 1
+                            #     draw_header()
+                            #     draw_footer()
+                            #     y_position = page_height - margin_top - 100
+                            #     scaled_h = min(config['max_height'], y_position - margin_bottom - 50 - 200)
+                            #     scaled_w = scaled_h * aspect
+                            #     c.setFont("Helvetica-Bold", 11)
+                            #     c.drawString(50, y_position, config['heading'])
+                            #     y_position -= 5
+                            # if (y_position < page_height - margin_top - 200):
+                            #     c.showPage()
+                            #     current_page+=1
+                            #     draw_header()
+                            #     draw_footer()
+                            #     y_position = page_content_height - margin_top - 100
+                            #     c.setFont("Helvetica-Bold", 11)
+                            #     c.drawString(50, y_position, config['heading'])
+                            #     y_position -= 5
+                            pass
+
+                            
+                        
+                        else:
+                            # Check if image fits vertically
+                            if scaled_h > (y_position - margin_bottom - 100) and y_position > 300: # changing
+                                # Need to reduce height to fit
+                                scaled_h = y_position - margin_bottom - 50
+                                scaled_w = scaled_h * aspect
+
+                        # Check if we need a new page
+                        if (y_position - scaled_h) < margin_bottom + 50 and config["heading"]!='2. Photos of the activity':
                             c.showPage()
                             current_page += 1
                             draw_header()
                             draw_footer()
                             y_position = page_height - margin_top - 100
-                            
+                            scaled_h = min(config['max_height'], y_position - margin_bottom - 50)
+                            scaled_w = scaled_h * aspect
+                            if scaled_w > (page_width - 100):
+                                scaled_w = page_width - 100
+                                scaled_h = scaled_w / aspect
                             c.setFont("Helvetica-Bold", 11)
                             c.drawString(50, y_position, config['heading'])
                             y_position -= 5
-                            
-                            max_available_height = y_position - margin_bottom - 10
-                    target_height = min(config['max_height'], max_available_height)
-                    
-                    # Calculate width based on target height
-                    scaled_h = min(target_height, img_h)
-                    scaled_w = scaled_h * aspect
-                    
-                    # Ensure width doesn't exceed page width
-                    if scaled_w > (page_width - 100):
-                        scaled_w = page_width - 100
-                        scaled_h = scaled_w / aspect
-                        scaled_h = min(scaled_h, config['max_height'])
 
-                    if (config['heading'] != '3. Attendance of participants') and (config['heading'] != '6. Student Feedback') and (config["heading"] != '2. Photos of the activity') and (config['heading'] != '5. Website Screenshots') :
-                        # Check if image fits vertically
-                        if scaled_h > (y_position - margin_bottom - 100): # changing
-                            # Need to reduce height to fit
-                            scaled_h = y_position - margin_bottom - 50
-                            scaled_w = scaled_h * aspect
-                            
-                    
-                    elif (config['heading'] == '6. Student Feedback'):
-                        # Check if image fits vertically
-                        if scaled_h > ((y_position - margin_bottom - 10)/2) and y_position < page_content_height/2 - margin_bottom - margin_top: # changing
-                            # Need to reduce height to fit
-                            scaled_h = (y_position - margin_bottom - 10)/2
-                            scaled_w = scaled_h * aspect
-                            
-                    elif (config["heading"] == '2. Photos of the activity'):
-                        # Check if image fits vertically
-                        # scaled_h-=20
-                        # if (y_position - scaled_h) < margin_bottom:
-                        #     c.showPage()
-                        #     current_page += 1
-                        #     draw_header()
-                        #     draw_footer()
-                        #     y_position = page_height - margin_top - 100
-                        #     scaled_h = min(config['max_height'], y_position - margin_bottom - 50 - 200)
-                        #     scaled_w = scaled_h * aspect
-                        #     c.setFont("Helvetica-Bold", 11)
-                        #     c.drawString(50, y_position, config['heading'])
-                        #     y_position -= 5
-                        pass
+
+                        # Center image horizontally
+                        x_pos = (page_width - scaled_w) / 2 if config['max_height'] == page_content_height and config["heading"]!='2. Photos of the activity' else 50
                         
-                    
-                    else:
-                        # Check if image fits vertically
-                        if scaled_h > (y_position - margin_bottom - 100) and y_position > 300: # changing
-                            # Need to reduce height to fit
-                            scaled_h = y_position - margin_bottom - 50
-                            scaled_w = scaled_h * aspect
+                        # for centering studend feedback section
+                        x_pos = (page_width - scaled_w) / 2 if config['heading'] == '6. Student Feedback' else 50
+                        # Draw image
+                        # if (config["heading"] != '2. Photos of the activity'):
+                        c.drawImage(img_path, x_pos, y_position - scaled_h, width=scaled_w, height=scaled_h)
+                        # Update position
+                        y_position -= scaled_h + 25  # 30px spacing after image
 
-                    # Check if we need a new page
-                    if (y_position - scaled_h) < margin_bottom + 50 and config["heading"]!='2. Photos of the activity':
-                        c.showPage()
-                        current_page += 1
-                        draw_header()
-                        draw_footer()
-                        y_position = page_height - margin_top - 100
-                        scaled_h = min(config['max_height'], y_position - margin_bottom - 50)
-                        scaled_w = scaled_h * aspect
-                        if scaled_w > (page_width - 100):
-                            scaled_w = page_width - 100
-                            scaled_h = scaled_w / aspect
-                        c.setFont("Helvetica-Bold", 11)
-                        c.drawString(50, y_position, config['heading'])
-                        y_position -= 5
-
-
-                    # Center image horizontally
-                    x_pos = (page_width - scaled_w) / 2 if config['max_height'] == page_content_height else 50
-                    
-                    # for centering studend feedback section
-                    x_pos = (page_width - scaled_w) / 2 if config['heading'] == '6. Student Feedback' else 50
-                    # Draw image
-                    c.drawImage(img_path, x_pos, y_position - scaled_h, 
-                            width=scaled_w, height=scaled_h)
-                    
-                    # Update position
-                    y_position -= scaled_h + 25  # 30px spacing after image
-
-                except Exception as e:
-                    print(f"Error loading image {img_path}: {str(e)}")
-                    continue
+                    except Exception as e:
+                        print(f"Error loading image {img_path}: {str(e)}")
+                        continue
             
         action_taken_report_text = data.get('actionTakenReport', {}).get('text', '')
         action_taken_report_images = annex_data.get('action_taken_report', [])
@@ -550,7 +628,7 @@ def generate_pdf(data, output_filename="output.pdf"):
         # Activity Report Title
         c.setFont("Helvetica-Bold", 10)
         c.drawCentredString(page_width/2, y_pos, "Activity Report")
-        y_pos -= 15
+        y_pos -= 20
 
         # Main Tables
         tables = [
@@ -593,7 +671,7 @@ def generate_pdf(data, output_filename="output.pdf"):
         organizer_signature = data.get('files', {}).get('signatures', {}).get('organizer')
         if organizer_signature:
             try:
-                img = PlatypusImage(organizer_signature, width=250, height=100)
+                img = PlatypusImage(organizer_signature, width=160, height=50)
                 report_prepared_rows.append(("Signature:", img))
             except:
                 report_prepared_rows.append(("Signature:", "Signature Image Error"))
@@ -639,9 +717,29 @@ def generate_newsletter(data, output_filename="newsletter.pdf"):
         # --- Title Section ---
         title = data['generalInfo']['title']
         c.setFont("Helvetica-Bold", 18)
-        x_center = 612 / 2  
-        c.drawCentredString(x_center,current_y,title)
-        current_y -= 60
+        
+        # Define text wrapping parameters
+        max_width = page_width - 2 * margin  # Available width for text
+        max_height = 100  # Maximum height for the title section
+        line_height = 20  # Height of each line of text
+        
+        
+        from reportlab.lib.utils import simpleSplit
+        # Split the title into multiple lines if it's too long
+        wrapped_title = simpleSplit(title, "Helvetica-Bold", 18, max_width)
+        
+        # Draw each line of the wrapped title
+        for line in wrapped_title:
+            if current_y < margin + max_height:  # Check if we're running out of space
+                c.showPage()  # Create a new page
+                current_y = page_height - margin  # Reset Y position
+            
+            x_center = page_width / 2
+            c.drawCentredString(x_center, current_y, line)
+            current_y -= line_height
+        
+        # Adjust Y position for the next section
+        current_y -= 20  # Add some extra space after the title
 
         # --- Activity Photos ---
         photos = data['files']['annexure'].get('activity_photos', [])
@@ -721,13 +819,14 @@ def generate_newsletter(data, output_filename="newsletter.pdf"):
 
     finally:
         c.save()
-
+        
 if __name__ == "__main__":
     data = None
     with open(sys.argv[1], 'r') as f:
         data = json.load(f)
         
     action = data.get('action', 'report')
+    print(f"and the format is : {format}")
     if action == 'newsletter':
         generate_newsletter(data, "newsletter.pdf")
     else :

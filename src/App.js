@@ -8,7 +8,7 @@ function App() {
         <div className='text-lg lg:text-xl font-medium'> <p className='text-center lg:text-justify'>Department Of Computer Science</p><p className='text-center'>BYC</p></div>
       </div>
       <div className='text-center lg:text-lg mt-5'> Activity Report Generator</div>
-    <div className='border border-[#0B3F64] mt-2'></div>
+      <div className='border border-[#0B3F64] mt-2'></div>
       <FormComponent />
       <div className='py-8 bg-[#002147] text-white font-medium border-t-5 border-[#ffbf00]'>
         <div className='flex justify-center lg:flex-row flex-col gap-[1rem] lg:gap-[4rem] items-center lg:items-stretch'>
@@ -24,7 +24,7 @@ function App() {
           <div className='max-w-[50%] lg:max-w-[30%] flex flex-col lg:gap-8 lg:pt-0 gap-10 justify-center'>
             <div>
               <p className='text-[16px] text-center lg:text-justify'>VISION</p>
-              <p className='text-[14px] text-center lg:text-justify font-normal'>&nbsp; EXCELLENCE AND SERVICE</p>
+              <p className='text-[14px] text-center lg:text-justify font-normal capitalize'>&nbsp; EXCELLENCE AND SERVICE</p>
             </div>
 
             <div>
@@ -35,7 +35,7 @@ function App() {
 
           </div>
           <span className='lg:pt-9 flex flex-col text-center lg:text-justify'>
-            <span className='opacity-70'>Website Developed by</span> <span className='underline cursor-pointer text-[#f5f505] text-[1.3rem]'><a href="https://github.com/parthgupta49/" target='_blank' rel='noreferrer' >Parth Gupta | BCA(2022) </a></span>
+            <span className='opacity-70 '>Developed By :</span> <span className='underline cursor-pointer text-[#f5f505] text-[1.3rem]'><a href="https://github.com/parthgupta49/" target='_blank' rel='noreferrer' >Parth Gupta | BCA(2022) </a></span>
           </span>
         </div>
       </div>

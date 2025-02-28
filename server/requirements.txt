@@ -1,3 +1,4 @@
 gradio_client
 reportlab
 pillow
+google-genai

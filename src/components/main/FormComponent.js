@@ -3,6 +3,9 @@ import { useForm } from 'react-hook-form';
 
 const FormComponent = () => {
 
+    const [newsletterFormat, setNewsletterFormat] = useState('pdf'); // Default to PDF
+
+
     // Add new state variables for newsletter email
     const [sendNewsletter, setSendNewsletter] = useState(false);
     const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -37,7 +40,7 @@ const FormComponent = () => {
             formData.append('newsletterEmail', newsletterEmail);
         }
 
-
+        formData.append('newsletterFormat', newsletterFormat);
 
 
         // Clean up signature data based on input type
@@ -114,8 +117,8 @@ const FormComponent = () => {
             console.log(key, "\n", value, "\n");
         }
         try {
-            const response = await fetch('https://report-generator-college-project.onrender.com/generate-pdf', {
-            // const response = await fetch('http://localhost:3001/generate-pdf', {
+            // const response = await fetch('https://report-generator-college-project.onrender.com/generate-pdf', {
+            const response = await fetch('http://localhost:3001/generate-pdf', {
                 method: 'POST',
                 body: formData
             });
@@ -129,9 +132,12 @@ const FormComponent = () => {
                 a.href = url;
 
                 // a.download = 'event_report.pdf';
+                a.download = action === 'newsletter' ? 'newsletter.pdf' : 'report.pdf';
+                if (action==='newsletter' && newsletterFormat==='docx'){
+                    a.download = 'newsletter.docx'; // Download as DOCX
+                }
 
                 // Set filename based on action
-                a.download = action === 'newsletter' ? 'newsletter.pdf' : 'report.pdf';
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -740,6 +746,35 @@ const FormComponent = () => {
                             />
                         </div>
                     )}
+                </div>
+
+                {/* Add newsletter format selection */}
+                <div className="mt-4">
+                    <label className="block text-gray-700 mb-2">Newsletter Format:</label>
+                    <div className="flex gap-4">
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="radio"
+                                name="newsletterFormat"
+                                value="pdf"
+                                checked={newsletterFormat === 'pdf'}
+                                onChange={(e) => setNewsletterFormat(e.target.value)}
+                                className="form-radio h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                            />
+                            <span className="text-gray-700">PDF</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="radio"
+                                name="newsletterFormat"
+                                value="docx"
+                                checked={newsletterFormat === 'docx'}
+                                onChange={(e) => setNewsletterFormat(e.target.value)}
+                                className="form-radio h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
+                            />
+                            <span className="text-gray-700">DOCX</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div className='flex gap-4 mt-8 flex-col sm:flex-row'>

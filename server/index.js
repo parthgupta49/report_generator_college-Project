@@ -7,16 +7,95 @@ const cors = require('cors')
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 const {mailSender} = require('./utils/nodemailer')
+
+const PDFServicesSdk = require('@adobe/pdfservices-node-sdk');
+const { ServicePrincipalCredentials, PDFServices, MimeType, ExportPDFJob, ExportPDFParams, ExportPDFTargetFormat, ExportPDFResult } = PDFServicesSdk;
+
+
 app.use(cors({
     origin : "https://csbyc-event-report-generator.vercel.app",
     // origin: "http://localhost:3000",
     credentials: true
 }));
 
+// Function to convert PDF to DOCX
+async function convertPdfToDocx(pdfFilePath, docxFilePath) {
+    try {
+        // Create a read stream for the input PDF file
+        const readStream = fs.createReadStream(pdfFilePath);
+        const clientId = process.env.ADOBE_CLIENT_ID
+        const clientSecret = process.env.ADOBE_CLIENT_SECRET
+
+
+        // Set up credentials
+        const credentials = new ServicePrincipalCredentials({
+            clientId: clientId, // Replace with your Client ID
+            clientSecret: clientSecret // Replace with your Client Secret
+        });
+
+        // Create an instance of PDFServices
+        const pdfServices = new PDFServices({ credentials });
+
+        // Upload the PDF file as an asset
+        const inputAsset = await pdfServices.upload({
+            readStream,
+            mimeType: MimeType.PDF
+        });
+
+        // Set up parameters for the export job
+        const params = new ExportPDFParams({
+            targetFormat: ExportPDFTargetFormat.DOCX
+        });
+
+        // Create the export job
+        const job = new ExportPDFJob({ inputAsset, params });
+
+        // Submit the job
+        const pollingURL = await pdfServices.submit({ job });
+
+        // Get the job result
+        const pdfServicesResponse = await pdfServices.getJobResult({
+            pollingURL,
+            resultType: ExportPDFResult
+        });
+
+        // Get the result asset
+        const resultAsset = pdfServicesResponse.result.asset;
+
+        // Get the content of the result asset
+        const streamAsset = await pdfServices.getContent({ asset: resultAsset });
+
+        // Check if _readStream is defined
+        if (streamAsset && streamAsset._readStream) {
+            // Save the output DOCX file
+            const writeStream = fs.createWriteStream(docxFilePath);
+            streamAsset._readStream.pipe(writeStream);
+
+            return new Promise((resolve, reject) => {
+                writeStream.on('finish', () => {
+                    console.log('PDF successfully converted to DOCX and saved as', docxFilePath);
+                    resolve();
+                });
+                writeStream.on('error', (err) => {
+                    console.error('Error writing DOCX file:', err);
+                    reject(err);
+                });
+            });
+        } else {
+            throw new Error('Error: streamAsset is undefined or does not have a _readStream property.');
+        }
+    } catch (err) {
+        console.error('Error converting PDF to DOCX:', err);
+        throw err; // Rethrow the error to be handled in the calling function
+    }
+}
+
 app.post('/generate-pdf', upload.any(), (req, res) => {
     // Extract JSON data and action type
     const jsonData = JSON.parse(req.body.data);
     const action = req.body.action || 'report'; // Default to report
+
+    const newsletterFormat = req.body.newsletterFormat || 'pdf';
 
     // Extract newsletter email from form data
     const newsletterEmail = req.body.newsletterEmail;
@@ -93,6 +172,25 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
             if (!fs.existsSync(outputFilename)) {
                 throw new Error(`Python script did not generate ${outputFilename}`);
             }
+
+            // If the format is DOCX, convert the PDF to DOCX
+            if (newsletterFormat === 'docx' && action === 'newsletter') {
+                const docxFilename = 'newsletter.docx'; // Desired output file path for DOCX
+                await convertPdfToDocx(outputFilename, docxFilename);
+                
+            // Verify DOCX exists
+            if (!fs.existsSync(docxFilename)) {
+                throw new Error(`Conversion did not generate ${docxFilename}`);
+            }
+            // Send the DOCX file to the user
+            const docxBuffer = fs.readFileSync(docxFilename);
+
+            // Send the DOCX file to the user
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            res.setHeader('Content-Disposition', `attachment; filename="${docxFilename}"`);
+            return res.send(docxBuffer);
+            }
+
             // Send PDF
             const pdf = fs.readFileSync(outputFilename);
             res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -134,6 +232,7 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
                 tempFile,
                 ...(action === 'report' ? ['output.pdf'] : []),
                 ...(action === 'newsletter' ? ['newsletter.pdf'] : []),
+                ...(action === 'newsletter' && newsletterFormat==='docx' ? ['newsletter.docx'] : []),
                 ...req.files.map(f => f.path)
             ];
 
