@@ -16,11 +16,6 @@ import os
 HF_TOKEN = os.environ['HF_TOKEN']
 GEMINI_API = os.environ['GEMINI_API']
 
-from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
 
 
 # from dotenv import load_dotenv
