@@ -18,6 +18,8 @@ app.use(cors({
     credentials: true
 }));
 
+app.options('*',cors());
+
 // Function to convert PDF to DOCX
 async function convertPdfToDocx(pdfFilePath, docxFilePath) {
     try {
@@ -91,6 +93,11 @@ async function convertPdfToDocx(pdfFilePath, docxFilePath) {
 }
 
 app.post('/generate-pdf', upload.any(), (req, res) => {
+
+    res.header('Access-Control-Allow-Origin', 'https://csbyc-event-report-generator.vercel.app');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+
     // Extract JSON data and action type
     const jsonData = JSON.parse(req.body.data);
     const action = req.body.action || 'report'; // Default to report
