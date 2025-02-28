@@ -11,10 +11,13 @@ const {mailSender} = require('./utils/nodemailer')
 const PDFServicesSdk = require('@adobe/pdfservices-node-sdk');
 const { ServicePrincipalCredentials, PDFServices, MimeType, ExportPDFJob, ExportPDFParams, ExportPDFTargetFormat, ExportPDFResult } = PDFServicesSdk;
 
+const allowedOrigins = [
+    "https://csbyc-event-report-generator.vercel.app",
+    "http://localhost:3000"
+]
 
 app.use(cors({
-    origin : "https://csbyc-event-report-generator.vercel.app",
-    // origin: "http://localhost:3000",
+    origin : allowedOrigins,
     credentials: true
 }));
 
@@ -195,6 +198,24 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
             // Send the DOCX file to the user
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
             res.setHeader('Content-Disposition', `attachment; filename="${docxFilename}"`);
+            // Then handle email sending if needed (non-blocking)
+            if (docxFilename === "newsletter.docx" && newsletterEmail  ) {
+                try {
+                    const pdfBuffer = fs.readFileSync(docxFilename);
+                    await mailSender(
+                        newsletterEmail,
+                        `<p>Please find attached the newsletter.</p>`,
+                        {
+                            filename: 'newsletter.docx',
+                            content: pdfBuffer
+                        }
+                    );
+                    console.log('Email sent successfully');
+                } catch (emailError) {
+                    console.error('Email sending failed:', emailError);
+                    // Consider logging this to an error tracking service
+                }
+            }
             return res.send(docxBuffer);
             }
 
@@ -208,7 +229,7 @@ app.post('/generate-pdf', upload.any(), (req, res) => {
             res.send(pdf);
 
             // Then handle email sending if needed (non-blocking)
-            if (outputFilename === "newsletter.pdf" && newsletterEmail) {
+            if (outputFilename === "newsletter.pdf" && newsletterEmail  ) {
                 try {
                     const pdfBuffer = fs.readFileSync(outputFilename);
                     await mailSender(

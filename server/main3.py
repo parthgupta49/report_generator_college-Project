@@ -92,7 +92,6 @@ def generate_pdf(data, output_filename="output.pdf"):
         c.setStrokeColor(HexColor("#4472c4"))
         c.line(50, margin_bottom + 25, page_width - 50, margin_bottom + 25)
 
-# this version has worked correctly
     def create_table(heading, data, y_start):
         styles = getSampleStyleSheet()
         styles["Normal"].fontName = "Helvetica"
@@ -292,7 +291,7 @@ def generate_pdf(data, output_filename="output.pdf"):
 
             if speaker_profile_images:
                 x_pos = 50
-                max_width = 250
+                max_width = 200
                 row_height = 0
                 try:
                     img = Image.open(speaker_profile_images)
